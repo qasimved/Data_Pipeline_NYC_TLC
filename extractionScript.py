@@ -61,10 +61,10 @@ def extract_data_with_range(start_date_str,end_date_str):
         bucket = storage_client.get_bucket(staging_bucket)
         # Uploading file for yellow texi to the staging bucket
         print("Uploading file for yellow texi to the staging bucket")
-        blob = bucket.blob(custom_destination_name_generator(start_date,counter,"yellow"))
-        # blob.upload_from_filename(destination_file_name, content_type='csv')
+        blob = bucket.blob(custom_destination_directory_generator(start_date,counter,"yellow"))
+        blob.upload_from_filename(destination_file_name, content_type='csv')
         print("Upload successfull: "+destination_file_name)
-        # os.remove(destination_file_name)
+        os.remove(destination_file_name)
 
         source_file_url = custom_source_url_generator(start_date,counter,"green")
         destination_file_name = custom_destination_name_generator(start_date,counter,"green")
@@ -75,10 +75,10 @@ def extract_data_with_range(start_date_str,end_date_str):
         bucket = storage_client.get_bucket(staging_bucket)
         # Uploading file for green texi to the staging bucket
         print("Uploading file for green texi to the staging bucket")
-        blob = bucket.blob(custom_destination_name_generator(start_date,counter,"green"))
-        # blob.upload_from_filename(destination_file_name, content_type='csv')
+        blob = bucket.blob(custom_destination_directory_generator(start_date,counter,"green"))
+        blob.upload_from_filename(destination_file_name, content_type='csv')
         print("Upload successfull: "+destination_file_name)
-        # os.remove(destination_file_name)
+        os.remove(destination_file_name)
 
 
 def custom_source_url_generator(start_date, month_counter, source_type):
@@ -94,6 +94,13 @@ def custom_destination_name_generator(start_date, month_counter, source_type):
         return "yellow_tripdata_" + latest_date.strftime("%Y-%m")+".csv"
     elif source_type.lower()=='green':
         return "green_tripdata_" + latest_date.strftime("%Y-%m")+".csv"
+
+def custom_destination_directory_generator(start_date, month_counter, source_type):
+    latest_date = start_date + relativedelta(months=month_counter)
+    if source_type.lower()=='yellow':
+        return "Yellow_Taxi/yellow_tripdata_" + latest_date.strftime("%Y-%m")+".csv"
+    elif source_type.lower()=='green':
+        return "Green_Taxi/green_tripdata_" + latest_date.strftime("%Y-%m")+".csv"
 
 
 
