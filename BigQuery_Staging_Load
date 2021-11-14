@@ -1,0 +1,332 @@
+-- BigQuery SQL's script that handle LOADING aspect of ELT
+
+-- creating external table and loading yellow taxti data from gs bucket to bq
+CREATE OR REPLACE EXTERNAL TABLE
+  staging.yellow_external OPTIONS ( format = 'CSV',
+    uris = ['gs://dpl-elt-staging/Yellow_Taxi/*.csv'],
+    skip_leading_rows = 1 );
+
+
+--- creating external table and loading green taxti data from gs bucket to bq
+CREATE OR REPLACE EXTERNAL TABLE
+  staging.green_external OPTIONS ( format = 'CSV',
+    uris = ['gs://dpl-elt-staging/Green_Taxi/*.csv'],
+    skip_leading_rows = 1 );
+
+
+-- exporting all yellow taxi data to single gs bucket
+EXPORT DATA
+  OPTIONS( uri='gs://dpl-elt-staging/Merged/yellow*.csv',
+    format='CSV',
+    overwrite=TRUE,
+    header=TRUE,
+    field_delimiter=';') AS
+SELECT
+  *
+FROM
+  staging.yellow_external
+ORDER BY
+  tpep_pickup_datetime;
+
+
+-- exporting all yellow taxi data to single gs bucket
+EXPORT DATA
+  OPTIONS( uri='gs://dpl-elt-staging/Merged/green*.csv',
+    format='CSV',
+    overwrite=TRUE,
+    header=TRUE,
+    field_delimiter=';') AS
+SELECT
+  *
+FROM
+  staging.green_external
+ORDER BY
+  lpep_pickup_datetime;
+
+
+-- creating native table for yellow taxi to manipulate the table structure because can't alter the external tables in bg
+CREATE TABLE
+  staging.yellow ( VendorID INTEGER,
+    tpep_pickup_datetime TIMESTAMP,
+    tpep_dropoff_datetime TIMESTAMP,
+    passenger_count INTEGER,
+    store_and_fwd_flag BOOLEAN,
+    RatecodeID INTEGER,
+    PULocationID INTEGER,
+    DOLocationID INTEGER,
+    trip_distance FLOAT64,
+    fare_amount FLOAT64,
+    extra FLOAT64,
+    mta_tax FLOAT64,
+    tip_amount FLOAT64,
+    tolls_amount FLOAT64,
+    total_amount FLOAT64,
+    payment_type INTEGER,
+    improvement_surcharge FLOAT64,
+    congestion_surcharge FLOAT64 );
+
+
+-- creating native table for green taxi to manipulate the table structure because can't alter the external tables in bg
+CREATE TABLE
+  staging.green ( VendorID INTEGER,
+    lpep_pickup_datetime TIMESTAMP,
+    lpep_dropoff_datetime TIMESTAMP,
+    passenger_count INTEGER,
+    store_and_fwd_flag BOOLEAN,
+    RatecodeID INTEGER,
+    PULocationID INTEGER,
+    DOLocationID INTEGER,
+    trip_distance FLOAT64,
+    fare_amount FLOAT64,
+    extra FLOAT64,
+    mta_tax FLOAT64,
+    tip_amount FLOAT64,
+    tolls_amount FLOAT64,
+    total_amount FLOAT64,
+    payment_type INTEGER,
+    improvement_surcharge FLOAT64,
+    congestion_surcharge FLOAT64,
+    trip_type INTEGER,
+    ehail_fee STRING );
+
+
+-- populating the yellow native table from external table
+INSERT INTO
+  `dpl-elt.staging.yellow`(VendorID,
+    tpep_pickup_datetime,
+    tpep_dropoff_datetime,
+    passenger_count,
+    store_and_fwd_flag,
+    RatecodeID,
+    PULocationID,
+    DOLocationID,
+    trip_distance,
+    fare_amount,
+    extra,
+    mta_tax,
+    tip_amount,
+    tolls_amount,
+    total_amount,
+    payment_type,
+    improvement_surcharge,
+    congestion_surcharge) (
+  SELECT
+    VendorID,
+    tpep_pickup_datetime,
+    tpep_dropoff_datetime,
+    passenger_count,
+    store_and_fwd_flag,
+    RatecodeID,
+    PULocationID,
+    DOLocationID,
+    trip_distance,
+    fare_amount,
+    extra,
+    mta_tax,
+    tip_amount,
+    tolls_amount,
+    total_amount,
+    payment_type,
+    improvement_surcharge,
+    congestion_surcharge
+  FROM
+    `dpl-elt.staging.yellow_external`);
+  
+  
+-- populating the green native table from external table
+INSERT INTO
+  `dpl-elt.staging.green`(VendorID,
+    lpep_pickup_datetime,
+    lpep_dropoff_datetime,
+    passenger_count,
+    store_and_fwd_flag,
+    RatecodeID,
+    PULocationID,
+    DOLocationID,
+    trip_distance,
+    fare_amount,
+    extra,
+    mta_tax,
+    tip_amount,
+    tolls_amount,
+    total_amount,
+    payment_type,
+    improvement_surcharge,
+    congestion_surcharge,
+    trip_type,
+    ehail_fee) (
+  SELECT
+    VendorID,
+    lpep_pickup_datetime,
+    lpep_dropoff_datetime,
+    passenger_count,
+    store_and_fwd_flag,
+    RatecodeID,
+    PULocationID,
+    DOLocationID,
+    trip_distance,
+    fare_amount,
+    extra,
+    mta_tax,
+    tip_amount,
+    tolls_amount,
+    total_amount,
+    payment_type,
+    improvement_surcharge,
+    congestion_surcharge,
+    trip_type,
+    ehail_fee
+  FROM
+    `dpl-elt.staging.green_external`);
+
+
+-- adding new column to handle the origin of data either yellow table or green table
+ALTER TABLE
+  staging.yellow ADD COLUMN external_origin STRING ;
+
+
+-- setting value to yellow in yellow table for external_origin
+UPDATE
+  `dpl-elt.staging.yellow`
+SET
+  external_origin = 'yellow'
+WHERE
+  external_origin IS NULL;
+  
+  
+-- adding new column to handle the origin of data either yellow table or green table
+ALTER TABLE
+  staging.green ADD COLUMN external_origin STRING ;
+  -- setting value to green in green table for external_origin
+UPDATE
+  `dpl-elt.staging.green`
+SET
+  external_origin = 'green'
+WHERE
+  external_origin IS NULL;
+
+
+-- creating a table that have merged data for both yellow and green taxi
+CREATE TABLE
+  staging.merged ( VendorID INTEGER,
+    lpep_pickup_datetime TIMESTAMP,
+    lpep_dropoff_datetime TIMESTAMP,
+    passenger_count INTEGER,
+    store_and_fwd_flag BOOLEAN,
+    RatecodeID INTEGER,
+    PULocationID INTEGER,
+    DOLocationID INTEGER,
+    trip_distance FLOAT64,
+    fare_amount FLOAT64,
+    extra FLOAT64,
+    mta_tax FLOAT64,
+    tip_amount FLOAT64,
+    tolls_amount FLOAT64,
+    total_amount FLOAT64,
+    payment_type INTEGER,
+    improvement_surcharge FLOAT64,
+    congestion_surcharge FLOAT64,
+    trip_type INTEGER,
+    ehail_fee STRING,
+    external_origin STRING );
+
+
+-- merging both table data (green and yellow) and inserting into merged table
+INSERT INTO
+  `dpl-elt.staging.merged` (VendorID,
+    lpep_pickup_datetime,
+    lpep_dropoff_datetime,
+    passenger_count,
+    store_and_fwd_flag,
+    RatecodeID,
+    PULocationID,
+    DOLocationID,
+    trip_distance,
+    fare_amount,
+    extra,
+    mta_tax,
+    tip_amount,
+    tolls_amount,
+    total_amount,
+    payment_type,
+    improvement_surcharge,
+    congestion_surcharge,
+    trip_type,
+    ehail_fee,
+    external_origin) (
+  SELECT
+    VendorID,
+    lpep_pickup_datetime,
+    lpep_dropoff_datetime,
+    passenger_count,
+    store_and_fwd_flag,
+    RatecodeID,
+    PULocationID,
+    DOLocationID,
+    trip_distance,
+    fare_amount,
+    extra,
+    mta_tax,
+    tip_amount,
+    tolls_amount,
+    total_amount,
+    payment_type,
+    improvement_surcharge,
+    congestion_surcharge,
+    trip_type,
+    ehail_fee,
+    external_origin
+  FROM
+    `dpl-elt.staging.green`
+  UNION ALL
+  SELECT
+    VendorID,
+    tpep_pickup_datetime,
+    tpep_dropoff_datetime,
+    passenger_count,
+    store_and_fwd_flag,
+    RatecodeID,
+    PULocationID,
+    DOLocationID,
+    trip_distance,
+    fare_amount,
+    extra,
+    mta_tax,
+    tip_amount,
+    tolls_amount,
+    total_amount,
+    payment_type,
+    improvement_surcharge,
+    congestion_surcharge,
+    NULL,
+    NULL,
+    external_origin
+  FROM
+    staging.yellow
+  ORDER BY
+    lpep_pickup_datetime );
+  
+-- exporting merged table to gs bucket as csv: single csv have all the data with indicator of external_source as (green or yellow)
+EXPORT DATA
+  OPTIONS( uri='gs://dpl-elt-staging/Merged/single_merged*.csv',
+    format='CSV',
+    overwrite=TRUE,
+    header=TRUE,
+    field_delimiter=';') AS
+SELECT
+  *
+FROM
+  `dpl-elt.staging.merged`
+ORDER BY
+  lpep_pickup_datetime;
+  
+
+-- cleaning dataset -green -green_external -yellow -yellow_external
+DROP TABLE
+  staging.green;
+DROP TABLE
+  staging.green_external;
+DROP TABLE
+  staging.yellow;
+DROP TABLE
+  staging.yellow_external
