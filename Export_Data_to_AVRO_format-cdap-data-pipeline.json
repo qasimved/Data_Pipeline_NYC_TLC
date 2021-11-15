@@ -1,0 +1,140 @@
+{
+    "artifact": {
+        "name": "cdap-data-pipeline",
+        "version": "6.5.1",
+        "scope": "SYSTEM"
+    },
+    "description": "this pipeline loads data from the semantic layer to convert into Avro format and upload to particular bucket for download",
+    "name": "Export_Data_to_AVRO_format",
+    "config": {
+        "resources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "driverResources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "connections": [
+            {
+                "from": "Local_Data_Source_Beta",
+                "to": "Wrangler Beta"
+            },
+            {
+                "from": "Wrangler Beta",
+                "to": "Semantic_Avro_Sink"
+            }
+        ],
+        "postActions": [],
+        "properties": {},
+        "processTimingEnabled": true,
+        "stageLoggingEnabled": true,
+        "stages": [
+            {
+                "name": "Local_Data_Source_Beta",
+                "plugin": {
+                    "name": "GCSFile",
+                    "type": "batchsource",
+                    "label": "Local_Data_Source_Beta",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.18.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "path": "gs://dpl-elt-semantic/CSV/final000000000000.csv",
+                        "useConnection": "true",
+                        "format": "text",
+                        "connection": "${conn(Cloud Storage Default)}",
+                        "referenceName": "dpl-elt-semantic.CSVfinal000000000000.csv",
+                        "schema": "{\"type\":\"record\",\"name\":\"etlSchemaBody\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}",
+                        "sampleSize": "1000",
+                        "skipHeader": "false",
+                        "filenameOnly": "false",
+                        "recursive": "false",
+                        "encrypted": "false",
+                        "fileEncoding": "UTF-8"
+                    }
+                },
+                "outputSchema": "{\"type\":\"record\",\"name\":\"etlSchemaBody\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}",
+                "id": "Local_Data_Source_Beta"
+            },
+            {
+                "name": "Wrangler Beta",
+                "plugin": {
+                    "name": "Wrangler",
+                    "type": "transform",
+                    "label": "Wrangler Beta",
+                    "artifact": {
+                        "name": "wrangler-transform",
+                        "version": "4.5.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "field": "*",
+                        "precondition": "false",
+                        "workspaceId": "8240f277-4001-4fe4-8195-c997fa6382fb",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}",
+                        "on-error": "fail-pipeline"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Local_Data_Source_Beta",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"body\",\"type\":\"string\"}]}"
+                    }
+                ],
+                "id": "Wrangler-Beta"
+            },
+            {
+                "name": "Semantic_Avro_Sink",
+                "plugin": {
+                    "name": "GCS",
+                    "type": "batchsink",
+                    "label": "Semantic_Avro_Sink",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.18.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "referenceName": "Semantic_Avro_Sink",
+                        "project": "auto-detect",
+                        "path": "gs://dpl-elt-semantic/AVRO/",
+                        "suffix": "yyyy-MM-dd-HH-mm",
+                        "format": "avro",
+                        "serviceAccountType": "filePath",
+                        "serviceFilePath": "auto-detect",
+                        "location": "us",
+                        "contentType": "application/octet-stream",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Wrangler Beta",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "id": "Semantic_Avro_Sink"
+            }
+        ],
+        "schedule": "0 1 */1 * *",
+        "engine": "spark",
+        "numOfRecordsPreview": 100,
+        "description": "this pipeline loads data from the semantic layer to convert into Avro format and upload to particular bucket for download",
+        "maxConcurrentRuns": 1
+    }
+}
