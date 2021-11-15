@@ -1,0 +1,14 @@
+-- BigQuery SQL's script to get the final CSV in semantic layer
+
+EXPORT DATA
+  OPTIONS( uri='gs://dpl-elt-semantic/CSV/final*.csv',
+    format='CSV',
+    overwrite=TRUE,
+    header=TRUE,
+    field_delimiter=',') AS
+SELECT
+  *
+FROM
+  `dpl-elt.local.local`
+ORDER BY
+  lpep_pickup_datetime;
