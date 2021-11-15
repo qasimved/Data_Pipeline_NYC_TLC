@@ -1,0 +1,24 @@
+parse-as-csv :body ';' true
+drop :body
+set-type :VendorID integer
+set-type :passenger_count integer
+set-type :store_and_fwd_flag boolean
+set-type :RatecodeID integer
+set-type :PULocationID integer
+set-type :DOLocationID integer
+set-type :trip_distance float
+set-type :fare_amount float
+set-type :extra float
+set-type :mta_tax float
+set-type :tip_amount float
+set-type :tolls_amount float
+set-type :total_amount float
+set-type :payment_type integer
+set-type :improvement_surcharge float
+set-type :congestion_surcharge float
+set-type :trip_type integer
+filter-rows-on condition-false trip_distance >0.0
+filter-rows-on condition-false fare_amount >0.0
+filter-rows-on condition-false tolls_amount >0.0
+drop :ehail_fee
+generate-uuid id
