@@ -1,0 +1,145 @@
+{
+    "artifact": {
+        "name": "cdap-data-pipeline",
+        "version": "6.5.1",
+        "scope": "SYSTEM"
+    },
+    "description": "This pipeline loads data from the semantic layer to convert into Parquet format and upload to particular bucket for download",
+    "name": "Export_Data_to_PARQUET_format",
+    "config": {
+        "resources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "driverResources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "connections": [
+            {
+                "from": "Local_Data_Source_Beta",
+                "to": "Wrangler Alpha"
+            },
+            {
+                "from": "Wrangler Alpha",
+                "to": "Semantic_Parquet_Sink"
+            }
+        ],
+        "postActions": [],
+        "properties": {},
+        "processTimingEnabled": true,
+        "stageLoggingEnabled": true,
+        "stages": [
+            {
+                "name": "Local_Data_Source_Beta",
+                "plugin": {
+                    "name": "GCSFile",
+                    "type": "batchsource",
+                    "label": "Local_Data_Source_Beta",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.18.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "path": "gs://dpl-elt-semantic/CSV/final000000000000.csv",
+                        "useConnection": "true",
+                        "format": "text",
+                        "connection": "${conn(Cloud Storage Default)}",
+                        "referenceName": "dpl-elt-semantic.CSVfinal000000000000.csv",
+                        "schema": "{\"type\":\"record\",\"name\":\"etlSchemaBody\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}",
+                        "sampleSize": "1000",
+                        "skipHeader": "false",
+                        "filenameOnly": "false",
+                        "recursive": "false",
+                        "encrypted": "false",
+                        "fileEncoding": "UTF-8"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"etlSchemaBody\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "id": "Local_Data_Source_Beta"
+            },
+            {
+                "name": "Wrangler Alpha",
+                "plugin": {
+                    "name": "Wrangler",
+                    "type": "transform",
+                    "label": "Wrangler Alpha",
+                    "artifact": {
+                        "name": "wrangler-transform",
+                        "version": "4.5.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "field": "*",
+                        "precondition": "false",
+                        "workspaceId": "8240f277-4001-4fe4-8195-c997fa6382fb",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}",
+                        "on-error": "fail-pipeline"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Local_Data_Source_Beta",
+                        "schema": "{\"type\":\"record\",\"name\":\"etlSchemaBody\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "id": "Wrangler-Alpha"
+            },
+            {
+                "name": "Semantic_Parquet_Sink",
+                "plugin": {
+                    "name": "GCS",
+                    "type": "batchsink",
+                    "label": "Semantic_Parquet_Sink",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.18.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "referenceName": "Semantic_Parquet_Sink",
+                        "project": "auto-detect",
+                        "path": "gs://dpl-elt-semantic/PARQUET/",
+                        "suffix": "yyyy-MM-dd-HH-mm",
+                        "format": "parquet",
+                        "serviceAccountType": "filePath",
+                        "serviceFilePath": "auto-detect",
+                        "location": "us",
+                        "contentType": "application/octet-stream",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Wrangler Alpha",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"body\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "id": "Semantic_Parquet_Sink"
+            }
+        ],
+        "schedule": "0 1 */1 * *",
+        "engine": "spark",
+        "numOfRecordsPreview": 100,
+        "description": "This pipeline loads data from the semantic layer to convert into Parquet format and upload to particular bucket for download",
+        "maxConcurrentRuns": 1
+    }
+}
