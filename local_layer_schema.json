@@ -1,0 +1,158 @@
+[
+    {
+        "name": "etlSchemaBody",
+        "schema": {
+            "type": "record",
+            "name": "record",
+            "fields": [
+                {
+                    "name": "VendorID",
+                    "type": [
+                        "int",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "lpep_pickup_datetime",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "lpep_dropoff_datetime",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "passenger_count",
+                    "type": [
+                        "int",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "store_and_fwd_flag",
+                    "type": [
+                        "boolean",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "RatecodeID",
+                    "type": [
+                        "int",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "PULocationID",
+                    "type": [
+                        "int",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "DOLocationID",
+                    "type": [
+                        "int",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "trip_distance",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "fare_amount",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "extra",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "mta_tax",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "tip_amount",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "tolls_amount",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "total_amount",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "payment_type",
+                    "type": [
+                        "int",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "improvement_surcharge",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "congestion_surcharge",
+                    "type": [
+                        "float",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "trip_type",
+                    "type": [
+                        "int",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "external_origin",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                {
+                    "name": "id",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            ]
+        }
+    }
+]
