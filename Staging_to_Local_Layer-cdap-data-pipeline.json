@@ -1,0 +1,152 @@
+{
+    "artifact": {
+        "name": "cdap-data-pipeline",
+        "version": "6.5.1",
+        "scope": "SYSTEM"
+    },
+    "description": "This pipeline cleans the data by removing invalid data also removing an empty column. It also adds a surrogate key and moves data to the next Local Layer via Wrangler and BigQuery.",
+    "name": "Staging_to_Local_Layer",
+    "config": {
+        "resources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "driverResources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "connections": [
+            {
+                "from": "Staging_Data_Source",
+                "to": "Wrangler"
+            },
+            {
+                "from": "Wrangler",
+                "to": "BigQuery_Local_Layer"
+            }
+        ],
+        "postActions": [],
+        "properties": {},
+        "processTimingEnabled": true,
+        "stageLoggingEnabled": true,
+        "stages": [
+            {
+                "name": "Staging_Data_Source",
+                "plugin": {
+                    "name": "GCSFile",
+                    "type": "batchsource",
+                    "label": "Staging_Data_Source",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.18.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "format": "text",
+                        "copyHeader": "true",
+                        "path": "gs://dpl-elt-staging/Merged/single_merged000000000000.csv",
+                        "connection": "${conn(Cloud Storage Default)}",
+                        "useConnection": "true",
+                        "referenceName": "dpl-elt-staging.Mergedsingle_merged000000000000.csv",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"body\",\"type\":\"string\"}]}",
+                        "sampleSize": "1000",
+                        "skipHeader": "false",
+                        "filenameOnly": "false",
+                        "recursive": "false",
+                        "encrypted": "false",
+                        "fileEncoding": "UTF-8"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"body\",\"type\":\"string\"}]}"
+                    }
+                ],
+                "id": "Staging_Data_Source"
+            },
+            {
+                "name": "Wrangler",
+                "plugin": {
+                    "name": "Wrangler",
+                    "type": "transform",
+                    "label": "Wrangler",
+                    "artifact": {
+                        "name": "wrangler-transform",
+                        "version": "4.5.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "directives": "parse-as-csv :body ';' true\ndrop :body\nset-type :VendorID integer\nset-type :passenger_count integer\nset-type :store_and_fwd_flag boolean\nset-type :RatecodeID integer\nset-type :PULocationID integer\nset-type :DOLocationID integer\nset-type :trip_distance float\nset-type :fare_amount float\nset-type :extra float\nset-type :mta_tax float\nset-type :tip_amount float\nset-type :tolls_amount float\nset-type :total_amount float\nset-type :payment_type integer\nset-type :improvement_surcharge float\nset-type :congestion_surcharge float\nset-type :trip_type integer\nfilter-rows-on condition-false trip_distance >0.0\nfilter-rows-on condition-false fare_amount >0.0\nfilter-rows-on condition-false tolls_amount >0.0\ndrop :ehail_fee\ngenerate-uuid id",
+                        "field": "*",
+                        "precondition": "false",
+                        "workspaceId": "718dafe5-432f-4344-bbf7-1f6085af6596",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"VendorID\",\"type\":[\"int\",\"null\"]},{\"name\":\"lpep_pickup_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"lpep_dropoff_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"passenger_count\",\"type\":[\"int\",\"null\"]},{\"name\":\"store_and_fwd_flag\",\"type\":[\"boolean\",\"null\"]},{\"name\":\"RatecodeID\",\"type\":[\"int\",\"null\"]},{\"name\":\"PULocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"DOLocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"trip_distance\",\"type\":[\"float\",\"null\"]},{\"name\":\"fare_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"extra\",\"type\":[\"float\",\"null\"]},{\"name\":\"mta_tax\",\"type\":[\"float\",\"null\"]},{\"name\":\"tip_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"tolls_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"total_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"payment_type\",\"type\":[\"int\",\"null\"]},{\"name\":\"improvement_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"congestion_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"trip_type\",\"type\":[\"string\",\"null\"]},{\"name\":\"external_origin\",\"type\":[\"string\",\"null\"]},{\"name\":\"id\",\"type\":[\"string\",\"null\"]}]}",
+                        "on-error": "fail-pipeline"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"VendorID\",\"type\":[\"int\",\"null\"]},{\"name\":\"lpep_pickup_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"lpep_dropoff_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"passenger_count\",\"type\":[\"int\",\"null\"]},{\"name\":\"store_and_fwd_flag\",\"type\":[\"boolean\",\"null\"]},{\"name\":\"RatecodeID\",\"type\":[\"int\",\"null\"]},{\"name\":\"PULocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"DOLocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"trip_distance\",\"type\":[\"float\",\"null\"]},{\"name\":\"fare_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"extra\",\"type\":[\"float\",\"null\"]},{\"name\":\"mta_tax\",\"type\":[\"float\",\"null\"]},{\"name\":\"tip_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"tolls_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"total_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"payment_type\",\"type\":[\"int\",\"null\"]},{\"name\":\"improvement_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"congestion_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"trip_type\",\"type\":[\"string\",\"null\"]},{\"name\":\"external_origin\",\"type\":[\"string\",\"null\"]},{\"name\":\"id\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "GCSFile",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"body\",\"type\":\"string\"}]}"
+                    }
+                ],
+                "id": "Wrangler"
+            },
+            {
+                "name": "BigQuery_Local_Layer",
+                "plugin": {
+                    "name": "BigQueryTable",
+                    "type": "batchsink",
+                    "label": "BigQuery_Local_Layer",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.18.1",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "referenceName": "Local_Layer_BG",
+                        "project": "auto-detect",
+                        "datasetProject": "dpl-elt",
+                        "dataset": "local",
+                        "table": "local",
+                        "serviceAccountType": "filePath",
+                        "serviceFilePath": "auto-detect",
+                        "operation": "insert",
+                        "truncateTable": "false",
+                        "allowSchemaRelaxation": "false",
+                        "location": "US",
+                        "createPartitionedTable": "false",
+                        "partitioningType": "TIME",
+                        "partitionFilterRequired": "false",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"VendorID\",\"type\":[\"int\",\"null\"]},{\"name\":\"lpep_pickup_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"lpep_dropoff_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"passenger_count\",\"type\":[\"int\",\"null\"]},{\"name\":\"store_and_fwd_flag\",\"type\":[\"boolean\",\"null\"]},{\"name\":\"RatecodeID\",\"type\":[\"int\",\"null\"]},{\"name\":\"PULocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"DOLocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"trip_distance\",\"type\":[\"float\",\"null\"]},{\"name\":\"fare_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"extra\",\"type\":[\"float\",\"null\"]},{\"name\":\"mta_tax\",\"type\":[\"float\",\"null\"]},{\"name\":\"tip_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"tolls_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"total_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"payment_type\",\"type\":[\"int\",\"null\"]},{\"name\":\"improvement_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"congestion_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"trip_type\",\"type\":[\"string\",\"null\"]},{\"name\":\"external_origin\",\"type\":[\"string\",\"null\"]},{\"name\":\"id\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"VendorID\",\"type\":[\"int\",\"null\"]},{\"name\":\"lpep_pickup_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"lpep_dropoff_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"passenger_count\",\"type\":[\"int\",\"null\"]},{\"name\":\"store_and_fwd_flag\",\"type\":[\"boolean\",\"null\"]},{\"name\":\"RatecodeID\",\"type\":[\"int\",\"null\"]},{\"name\":\"PULocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"DOLocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"trip_distance\",\"type\":[\"float\",\"null\"]},{\"name\":\"fare_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"extra\",\"type\":[\"float\",\"null\"]},{\"name\":\"mta_tax\",\"type\":[\"float\",\"null\"]},{\"name\":\"tip_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"tolls_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"total_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"payment_type\",\"type\":[\"int\",\"null\"]},{\"name\":\"improvement_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"congestion_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"trip_type\",\"type\":[\"string\",\"null\"]},{\"name\":\"external_origin\",\"type\":[\"string\",\"null\"]},{\"name\":\"id\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Wrangler",
+                        "schema": "{\"type\":\"record\",\"name\":\"record\",\"fields\":[{\"name\":\"VendorID\",\"type\":[\"int\",\"null\"]},{\"name\":\"lpep_pickup_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"lpep_dropoff_datetime\",\"type\":[\"string\",\"null\"]},{\"name\":\"passenger_count\",\"type\":[\"int\",\"null\"]},{\"name\":\"store_and_fwd_flag\",\"type\":[\"boolean\",\"null\"]},{\"name\":\"RatecodeID\",\"type\":[\"int\",\"null\"]},{\"name\":\"PULocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"DOLocationID\",\"type\":[\"int\",\"null\"]},{\"name\":\"trip_distance\",\"type\":[\"float\",\"null\"]},{\"name\":\"fare_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"extra\",\"type\":[\"float\",\"null\"]},{\"name\":\"mta_tax\",\"type\":[\"float\",\"null\"]},{\"name\":\"tip_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"tolls_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"total_amount\",\"type\":[\"float\",\"null\"]},{\"name\":\"payment_type\",\"type\":[\"int\",\"null\"]},{\"name\":\"improvement_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"congestion_surcharge\",\"type\":[\"float\",\"null\"]},{\"name\":\"trip_type\",\"type\":[\"string\",\"null\"]},{\"name\":\"external_origin\",\"type\":[\"string\",\"null\"]},{\"name\":\"id\",\"type\":[\"string\",\"null\"]}]}"
+                    }
+                ],
+                "id": "BigQuery_Local_Layer"
+            }
+        ],
+        "schedule": "0 1 */1 * *",
+        "engine": "spark",
+        "numOfRecordsPreview": 100,
+        "description": "This pipeline cleans the data by removing invalid data also removing an empty column. It also adds a surrogate key and moves data to the next Local Layer via Wrangler and BigQuery.",
+        "maxConcurrentRuns": 1
+    }
+}
