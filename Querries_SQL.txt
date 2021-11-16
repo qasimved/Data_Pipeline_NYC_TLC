@@ -1,0 +1,23 @@
+-- SQL querries for three problems
+
+-- The average distance is driven by yellow and green taxis per hour
+select avg( cast (trip_distance as decimal(10,2))) as Distance,datepart(hour, cast( replace(lpep_pickup_datetime,'UTC','') as datetime)) as Hour ,external_origin as Taxi from Merged
+where external_origin in ('yellow', 'green')
+group by external_origin,datepart(hour, cast( replace(lpep_pickup_datetime,'UTC','') as datetime));
+
+
+-- Day of the week in 2019 and 2020 which has the lowest number of single rider trips
+select sum( cast (passenger_count as int)) as PassengerCount, datepart(WEEKDAY, cast( replace(lpep_pickup_datetime,'UTC','') as datetime)) as WeekDay
+--,year(cast( replace(lpep_pickup_datetime,'UTC','') as datetime)) as [year]
+from Merged
+where year(cast( replace(lpep_pickup_datetime,'UTC','') as datetime)) in ('2019','2020')
+group by datepart(WEEKDAY, cast( replace(lpep_pickup_datetime,'UTC','') as datetime))
+--,year(cast( replace(lpep_pickup_datetime,'UTC','') as datetime))  
+order by PassengerCount asc;
+
+
+-- The top 3 of the busiest hours
+select top 3 avg( cast (trip_distance as decimal(10,2))) as Distance,datepart(hour, cast( replace(lpep_pickup_datetime,'UTC','') as datetime)) as Hour ,external_origin as Taxi from Merged
+group by external_origin,datepart(hour, cast( replace(lpep_pickup_datetime,'UTC','') as datetime))
+order by Distance desc;
+

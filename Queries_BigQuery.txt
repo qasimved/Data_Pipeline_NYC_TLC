@@ -1,0 +1,20 @@
+-- BigQuery Editor queries for three problems
+
+-- The average distance is driven by yellow and green taxis per hour
+select avg( cast (trip_distance as NUMERIC)) as Distance,EXTRACT(hour FROM PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', replace(lpep_pickup_datetime,'UTC',''))) as Hour ,external_origin as Taxi 
+from dpl-elt.local.local 
+where external_origin in ('yellow', 'green')
+group by external_origin,2
+order by Hour;
+
+-- Day of the week in 2019 and 2020 which has the lowest number of single rider trips
+select sum( cast (passenger_count as int)) as SingleTrips, EXTRACT(dayofweek FROM  PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', replace(lpep_pickup_datetime,'UTC',''))) as WeekDay
+from dpl-elt.local.local 
+where EXTRACT(YEAR FROM  PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', replace(lpep_pickup_datetime,'UTC',''))) in (2019,202) AND passenger_count = 1
+group by 2
+order by SingleTrips asc;
+
+-- The top 3 of the busiest hours
+select avg( cast (trip_distance as NUMERIC)) as Distance,EXTRACT(hour FROM PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', replace(lpep_pickup_datetime,'UTC',''))) as Hour ,external_origin as Taxi from dpl-elt.local.local
+group by external_origin,Hour
+order by Distance desc limit 3;
