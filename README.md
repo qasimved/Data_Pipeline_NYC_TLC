@@ -8,7 +8,7 @@ This repository provides the solution for following the problem statement. Pleas
 
 Problem Statement: 
 
-The city of New York provides historical data of "The New York City Taxi and Limousine Commission" (TLC). Your colleagues from the data science team want to create various evaluations and predictions based on this data. Depending on their different use cases, they need the output data in a row-oriented and column-oriented format. So, they approach you and ask for your help. Your colleagues only rely on a frequent output of the datasets in these two formats, so you have a free choice of your specific technologies. 
+The city of New York provides historical data of "The New York City Taxi and Limousine Commission" (TLC) (https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page). Your colleagues from the data science team want to create various evaluations and predictions based on this data. Depending on their different use cases, they need the output data in a row-oriented and column-oriented format. So, they approach you and ask for your help. Your colleagues only rely on a frequent output of the datasets in these two formats, so you have a free choice of your specific technologies. 
 
 Your tasks: 
 
