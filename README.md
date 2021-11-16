@@ -1,9 +1,10 @@
 # Data_Pipeline_NYC_TLC 
 
  
+This repository provides the solution for following the problem statement. 
 
-This repository provides the solution for following the problem statement. Please visit this project's wiki for solution and deployment, which explains the architecture and steps to deploy this pipeline. 
-
+Please visit this project's wiki for solution and deployment, which explains the architecture and steps to deploy this pipeline. 
+Wiki link: https://github.com/qasimved/Data_Pipeline_NYC_TLC/wiki
  
 
 Problem Statement: 
