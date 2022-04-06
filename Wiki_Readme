@@ -1,0 +1,78 @@
+# Data Pipeline for TLC
+## Introduction
+The first step towards solving this problem is to design a data pipeline or, more specifically, an ETL or ELT pipeline. There are a lot of options to choose tools for this situation but I decided to go with Google Cloud Platform (GCP) because it’s a secure, reliable, and scalable solution that helps them improve the speed and frequency of implementation of new products and features or process petabytes of data and also a free trial. I am using 3-Tier layer architecture for this solution in which each layer is responsible for one of the aspects of ELT.
+
+## Components
+Before diving deep into the architecture first let's look into the components of this pipeline. Here is the list of each component involved in the architecture with their official documentation.
+* [Cloud Functions](https://cloud.google.com/functions/)
+* [Cloud Scheduler](https://cloud.google.com/scheduler/)
+* [Cloud Storage](https://cloud.google.com/storage)
+* [Cloud Data Fusion](https://cloud.google.com/data-fusion)
+* [BigQuery](https://cloud.google.com/bigquery)
+
+## Architecture
+If we look into architecture from a bird-eye view, a python script will set up the three-layer architecture and extract (E) the data (raw form) from the TLC source and dump it in the cloud storage in chunks(months), then BigQuery loads (L) that data and merged it into a single destination for further processing. After that data fusion runs its pipeline and cleans the data, apply some transformations, add the surrogate key, define and export schema using wrangler and transform (T) it into Bigquery where we can perform analysis and dump data into a bucket in excel form for downloading. Data fusion also has two other pipelines to export data in Parquet and Avro format which will be available for download. Cloud functions and the scheduler will help to automate the extraction part for the future. Components and their communication can be seen in the following picture.  
+
+![component diagram](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/components.png)
+
+To talk about architecture in-depth, first, we have to look into the three-layer architecture which is used in this pipeline. The whole pipeline is divided into three layers. Each layer follows the concept of separation of concerns which means each layer gives a different view of data. Now let's discuss each layer separately.
+
+### Staging Layer:
+This layer is responsible for extraction. Before extracting the data from a source or third party we have to set up the data architecture for cloud storage i.e buckets for storing and handling data. So [extractionScript.py](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/extractionScript.py) script will initiate the cloud instance and create three buckets(dpl-elt-staging, dpl-elt-local, dpl-elt-semantic) for each layer data. After that script will download the data from the source by asking the user to give a range for dates(start and end date) via function arguments. The source (LTC) provides data for each month with two CSVs, one for "green" taxi and one for "yellow" taxi so the script will place these data in two different folders(Green and Yellow) in the staging bucket.
+
+**Deployment Step 1:**  Set up the GCP account and enable the cloud storage and get the credentials file. Run [extractionScript.py](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/extractionScript.py) on your local system using python environment.
+
+**Deployment Step 1 output:** 
+
+![All Buckets](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/Al_%20buckets_for_layers.png)
+
+![Green csv](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/staging-green.png)
+
+![Yellow csv](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/staging-yellow.png)
+
+### Local Layer:
+After extracting the data we will have the two folders for each type of taxi and multiple CSV files for each month in original form. Now here comes the loading part in this layer where we will merge all the files for green and yellow taxis. We will use BigQuery to merge all the files into two, one for yellow and one for green. After analyses of data, it can be seen that yellow and green taxi data are almost the same with only one extra column in green so we will also merge them into one and add an extra column with the name of "external_origin" and set the value to green or yellow according to their source. After that BigQuery will export this data into the local layer i.e local layer bucket(dpl-elt-local). [BigQuery_Staging_Load](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/BigQuery_Staging_Load) (BigQuerry script) will do all the stuff I've mentioned. 
+
+**Deployment Step 2:**  Enable the BigQuerry and run [BigQuery_Staging_Load](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/BigQuery_Staging_Load) script in BigQuery Editor.
+
+**Deployment Step 2 output:**
+
+![Staging_merged](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/staging-merged.png)
+
+
+
+### Semantic Layer:
+In this layer, we will perform data cleaning and transformation. We will use Data Fusion in this step and design a pipeline that involves data source (bucket: dpl-elt-local) wrangler(cleaner, transformer) and sink(BigQuery). Wrangler is the tool of data fusion that will help us to define a schema for output, apply some transformation and clean the data (remove -ive distance data, tip less than 0, etc). It also helps to remove an empty column "ehil_fee" and define a unique key (UUID). We will also export the final schema using wrangler. And in the final step that cleaned and transformed data will be loaded into BigData which will further load final data to the semantic bucket (dpl-elt-semantic) in CSV format for Data Scientists and excel gurus. 
+
+
+**Deployment Step 3:**  Enable the Data Fusion and create its instance with proper permissions. Import the pipeline using the import feature and [Staging_to_Local_Layer-cdap-data-pipeline.json](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/Staging_to_Local_Layer-cdap-data-pipeline.json) file. Deploy and run the pipeline. [datafusion-directives-wrangler.txt](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/datafusion-directives-wrangler.txt) are defined and used in this pipeline.
+
+**Deployment Step 3 output:**
+
+![wrangler_import_staging_data](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/wrangler_import_staging_data.png)
+
+![DataPipline-Stagin-to-local-layer.png](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/DataPipline-Stagin-to-local-layer.png)
+
+### Export solution for Parquet and Avro
+As required to export data set to parquet and avro, Two more data fusion pipelines are defined and can be used to convert the final data set to parquet and avro. These pipelines will use the bucket from local layer(dpl-elt-local) data and using wrangler export them to a semantic layer for downloading. 
+
+**Deployment Step 4:**  Open data fusion instance and import the pipeline using the import feature with [Export_Data_to_AVRO_format-cdap-data-pipeline.json](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/Export_Data_to_AVRO_format-cdap-data-pipeline.json) file for Avro and [Export_Data_to_PARQUET_format-cdap-data-pipeline.json](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/Export_Data_to_PARQUET_format-cdap-data-pipeline.json) file for Parquet. Deploy and run the pipeline.
+
+**Deployment Step 4 output:**
+
+![export to avro](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/Export_to_Avro.png)
+
+![export to parquet](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/Export_to_parquet.png)
+
+![semantic_buckt_structure](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/Semantic_bucket_structure.png)
+
+![Avro](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/Export_to_avro_2.png)
+
+![export_to_parquet_result](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/wiki-images/Export_to_Parquet_2.png)
+
+
+## Deliverables
+
+* Definition of your output datasets. The formats include the schema definition (data types, names, etc): [Schema](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/local_layer_schema.json)
+
+* Code of the queries (SQL or other query languages): [SQL](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/Querries_SQL.txt) and [BigQuery](https://github.com/qasimved/Data_Pipeline_NYC_TLC/blob/main/Queries_BigQuery.txt)
